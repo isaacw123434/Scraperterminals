@@ -1,0 +1,36 @@
+[
+  {
+    "id": "pr_001",
+    "name": "Oxford Redbridge Park and Ride",
+    "region": "South East",
+    "category": "edge_of_town",
+    "source_url": "https://www.parkandride.net/",
+    "geocode_hint": {
+      "lat": 51.7348,
+      "lng": -1.2505,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  },
+  {
+    "id": "pr_002",
+    "name": "Cambridge Trumpington Park & Ride",
+    "region": "East of England",
+    "category": "edge_of_town",
+    "source_url": "https://www.parkandride.net/",
+    "geocode_hint": {
+      "lat": 52.1643,
+      "lng": 0.1065,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  }
+]

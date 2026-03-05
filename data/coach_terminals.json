@@ -1,0 +1,36 @@
+[
+  {
+    "id": "coach_001",
+    "name": "Victoria Coach Station",
+    "region": "London",
+    "category": "major",
+    "source_url": "https://en.wikipedia.org/wiki/Victoria_Coach_Station",
+    "geocode_hint": {
+      "lat": 51.4926,
+      "lng": -0.1492,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  },
+  {
+    "id": "coach_002",
+    "name": "Digbeth Coach Station",
+    "region": "West Midlands",
+    "category": "major",
+    "source_url": "https://en.wikipedia.org/wiki/Birmingham_Coach_Station",
+    "geocode_hint": {
+      "lat": 52.4746,
+      "lng": -1.8890,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  }
+]

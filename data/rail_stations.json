@@ -1,0 +1,53 @@
+[
+  {
+    "id": "rail_001",
+    "name": "Birmingham New Street",
+    "region": "West Midlands",
+    "category": "large",
+    "source_url": "https://en.wikipedia.org/wiki/Birmingham_New_Street_railway_station",
+    "geocode_hint": {
+      "lat": 52.4778,
+      "lng": -1.8994,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  },
+  {
+    "id": "rail_002",
+    "name": "Manchester Piccadilly",
+    "region": "North West",
+    "category": "large",
+    "source_url": "https://en.wikipedia.org/wiki/Manchester_Piccadilly_station",
+    "geocode_hint": {
+      "lat": 53.4774,
+      "lng": -2.2312,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  },
+  {
+    "id": "rail_003",
+    "name": "London Waterloo",
+    "region": "London",
+    "category": "large",
+    "source_url": "https://en.wikipedia.org/wiki/Waterloo_station",
+    "geocode_hint": {
+      "lat": 51.5032,
+      "lng": -0.1143,
+      "confidence": "auto"
+    },
+    "status": "untouched",
+    "skipped": false,
+    "flagged": false,
+    "has_car_park": null,
+    "entrances": []
+  }
+]

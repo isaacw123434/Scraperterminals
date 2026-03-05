@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub Confirm</title>
+    <style>
+        :root {
+            --bg-color: #121826;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .stats-bar {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill-success { background-color: var(--success); }
+        .progress-fill-partial { background-color: var(--warning); }
+        .progress-fill-skipped { background-color: var(--text-muted); }
+
+        .card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .card-stats strong {
+            color: var(--text-main);
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .links {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .export-section {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .export-section h3 {
+            margin-top: 0;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .export-buttons button {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Hub Confirm</h1>
+            <p class="subtitle">UK Transport Data — Coordinate Confirmation Tool</p>
+        </header>
+
+        <div class="stats-bar" id="overall-stats">
+            <div class="stat-item">
+                <span class="stat-value" id="total-hubs">0</span>
+                <span class="stat-label">Total Hubs</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="total-complete">0</span>
+                <span class="stat-label">Total Confirmed</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="overall-progress">0%</span>
+                <span class="stat-label">Overall Progress</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="time-remaining">--</span>
+                <span class="stat-label">Est. Time Remaining</span>
+            </div>
+        </div>
+
+        <div class="cards-grid">
+            <!-- Rail Stations -->
+            <div class="card" id="card-rail">
+                <h2>🚆 Rail Stations</h2>
+                <div class="progress-container">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;">
+                        <span id="rail-progress-text">0 / 0 stations complete — 0%</span>
+                    </div>
+                    <div class="progress-bar" id="rail-progress-bar">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <div>Partial: <strong id="rail-partial">0</strong></div>
+                    <div>Pins placed: <strong id="rail-pins">0</strong></div>
+                    <div>Skipped: <strong id="rail-skipped">0</strong></div>
+                    <div>Flagged: <strong id="rail-flagged">0</strong></div>
+                </div>
+                <div class="card-actions">
+                    <a href="pin.html?type=rail&resume=true" class="btn">Continue →</a>
+                    <div class="links">
+                        <a href="pin.html?type=rail&resume=false">Start from beginning</a>
+                        <a href="#" onclick="alert('Not implemented in prototype')">View flagged</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach Terminals -->
+            <div class="card" id="card-coach">
+                <h2>🚌 Coach Terminals</h2>
+                <div class="progress-container">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;">
+                        <span id="coach-progress-text">0 / 0 stations complete — 0%</span>
+                    </div>
+                    <div class="progress-bar" id="coach-progress-bar">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <div>Partial: <strong id="coach-partial">0</strong></div>
+                    <div>Pins placed: <strong id="coach-pins">0</strong></div>
+                    <div>Skipped: <strong id="coach-skipped">0</strong></div>
+                    <div>Flagged: <strong id="coach-flagged">0</strong></div>
+                </div>
+                <div class="card-actions">
+                    <a href="pin.html?type=coach_terminals&resume=true" class="btn">Continue →</a>
+                    <div class="links">
+                        <a href="pin.html?type=coach_terminals&resume=false">Start from beginning</a>
+                        <a href="#">View flagged</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Park & Ride -->
+            <div class="card" id="card-pr">
+                <h2>🅿️ Park & Ride</h2>
+                <div class="progress-container">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;">
+                        <span id="pr-progress-text">0 / 0 stations complete — 0%</span>
+                    </div>
+                    <div class="progress-bar" id="pr-progress-bar">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <div>Partial: <strong id="pr-partial">0</strong></div>
+                    <div>Pins placed: <strong id="pr-pins">0</strong></div>
+                    <div>Skipped: <strong id="pr-skipped">0</strong></div>
+                    <div>Flagged: <strong id="pr-flagged">0</strong></div>
+                </div>
+                <div class="card-actions">
+                    <a href="pin.html?type=park_and_ride&resume=true" class="btn">Continue →</a>
+                    <div class="links">
+                        <a href="pin.html?type=park_and_ride&resume=false">Start from beginning</a>
+                        <a href="#">View flagged</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <h3>Data Management</h3>
+            <div class="export-buttons">
+                <button class="btn" onclick="exportCSV('all')">Export All Confirmed (CSV)</button>
+                <button class="btn btn-secondary" onclick="exportCSV('complete')">Export Complete Only (CSV)</button>
+            </div>
+            <div class="export-buttons" style="margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="exportJSON('rail')">Export Rail (JSON)</button>
+                <button class="btn btn-secondary" onclick="exportJSON('coach_terminals')">Export Coach (JSON)</button>
+                <button class="btn btn-secondary" onclick="exportJSON('park_and_ride')">Export P&R (JSON)</button>
+            </div>
+            <div class="export-buttons" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <input type="file" id="importFile" style="display:none;" accept=".json">
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Import updated data file</button>
+                <button class="btn btn-secondary" style="color: var(--danger); border-color: var(--danger);" onclick="resetAllProgress()">Reset all progress</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const types = ['rail', 'coach_terminals', 'park_and_ride'];
+        const state = {};
+
+        async function loadData(type) {
+            const lsKey = `hubconfirm_${type}`;
+            const stored = localStorage.getItem(lsKey);
+
+            if (stored) {
+                return JSON.parse(stored);
+            }
+
+            try {
+                // Determine file path based on type string.
+                let filename = type;
+                if(type === 'rail') filename = 'rail_stations';
+                const res = await fetch(`data/${filename}.json`);
+                if (!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                localStorage.setItem(lsKey, JSON.stringify(data));
+                return data;
+            } catch (e) {
+                console.error(`Could not load ${type} data`, e);
+                return [];
+            }
+        }
+
+        function calculateStats(data) {
+            let total = data.length;
+            let complete = 0;
+            let partial = 0;
+            let skipped = 0;
+            let flagged = 0;
+            let pins = 0;
+
+            data.forEach(station => {
+                if (station.status === 'complete') complete++;
+                if (station.status === 'partial') partial++;
+                if (station.status === 'skipped') skipped++;
+                if (station.flagged) flagged++;
+                if (station.entrances) pins += station.entrances.length;
+            });
+
+            return { total, complete, partial, skipped, flagged, pins };
+        }
+
+        function updateUI() {
+            let overallTotal = 0;
+            let overallComplete = 0;
+            let totalPinsRemaining = 0;
+
+            types.forEach(type => {
+                const data = state[type] || [];
+                const stats = calculateStats(data);
+
+                overallTotal += stats.total;
+                overallComplete += stats.complete;
+                totalPinsRemaining += (stats.total - stats.complete); // rough estimate
+
+                const prefix = type === 'coach_terminals' ? 'coach' : type === 'park_and_ride' ? 'pr' : 'rail';
+                const percent = stats.total > 0 ? Math.round((stats.complete / stats.total) * 100) : 0;
+                const partialPercent = stats.total > 0 ? Math.round((stats.partial / stats.total) * 100) : 0;
+
+                document.getElementById(`${prefix}-progress-text`).innerText = `${stats.complete} / ${stats.total} stations complete — ${percent}%`;
+                document.getElementById(`${prefix}-partial`).innerText = stats.partial;
+                document.getElementById(`${prefix}-pins`).innerText = stats.pins;
+                document.getElementById(`${prefix}-skipped`).innerText = stats.skipped;
+                document.getElementById(`${prefix}-flagged`).innerText = stats.flagged;
+
+                const barHtml = `
+                    <div class="progress-fill-success" style="width: ${percent}%"></div>
+                    <div class="progress-fill-partial" style="width: ${partialPercent}%"></div>
+                `;
+                document.getElementById(`${prefix}-progress-bar`).innerHTML = barHtml;
+            });
+
+            document.getElementById('total-hubs').innerText = overallTotal;
+            document.getElementById('total-complete').innerText = overallComplete;
+
+            const overallPercent = overallTotal > 0 ? Math.round((overallComplete / overallTotal) * 100) : 0;
+            document.getElementById('overall-progress').innerText = `${overallPercent}%`;
+
+            // Assuming ~4 seconds per remaining station on average
+            const secondsRemaining = totalPinsRemaining * 4;
+            let timeStr = "--";
+            if (secondsRemaining > 0) {
+                const hours = Math.floor(secondsRemaining / 3600);
+                const minutes = Math.floor((secondsRemaining % 3600) / 60);
+                if(hours > 0) timeStr = `${hours}h ${minutes}m`;
+                else timeStr = `${minutes}m`;
+            } else if (overallTotal > 0 && overallTotal === overallComplete) {
+                timeStr = "0m";
+            }
+            document.getElementById('time-remaining').innerText = timeStr;
+        }
+
+        async function init() {
+            for (const type of types) {
+                state[type] = await loadData(type);
+            }
+            updateUI();
+        }
+
+        function exportCSV(filterMode) {
+            let rows = [
+                ['hub_id', 'hub_name', 'region', 'category', 'has_car_park', 'entrance_id', 'entrance_type', 'is_primary', 'lat', 'lng', 'notes', 'confirmed_at']
+            ];
+
+            types.forEach(type => {
+                const data = state[type] || [];
+                data.forEach(station => {
+                    if (filterMode === 'complete' && station.status !== 'complete') return;
+                    if (filterMode === 'all' && (station.status === 'untouched' || station.status === 'skipped')) return;
+
+                    if (station.entrances && station.entrances.length > 0) {
+                        station.entrances.forEach(ent => {
+                            rows.push([
+                                station.id,
+                                `"${station.name}"`,
+                                `"${station.region}"`,
+                                station.category || '',
+                                station.has_car_park !== null ? station.has_car_park : '',
+                                ent.entrance_id,
+                                ent.entrance_type,
+                                ent.is_primary,
+                                ent.lat,
+                                ent.lng,
+                                `"${(ent.notes || '').replace(/"/g, '""')}"`,
+                                ent.confirmed_at
+                            ]);
+                        });
+                    }
+                });
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `hub_confirm_${filterMode}_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportJSON(type) {
+            const data = state[type] || [];
+            let jsonContent = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            let link = document.createElement("a");
+            link.setAttribute("href", jsonContent);
+            link.setAttribute("download", `${type}_export_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function resetAllProgress() {
+            if(confirm("Are you sure you want to completely reset all local progress? This cannot be undone.")) {
+                types.forEach(type => {
+                    localStorage.removeItem(`hubconfirm_${type}`);
+                    localStorage.removeItem(`hubconfirm_last_index_${type}`);
+                });
+                location.reload();
+            }
+        }
+
+        document.getElementById('importFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if(!Array.isArray(imported)) {
+                        alert("Invalid JSON format. Expected an array of stations.");
+                        return;
+                    }
+
+                    // Determine the type from the file name or a heuristic
+                    let targetType = 'rail'; // default fallback
+                    if (file.name.includes('coach')) targetType = 'coach_terminals';
+                    if (file.name.includes('park')) targetType = 'park_and_ride';
+
+                    const userConfirmed = confirm(`Merge imported file into ${targetType}?`);
+                    if(!userConfirmed) return;
+
+                    const existingData = state[targetType] || [];
+                    const existingMap = new Map();
+                    existingData.forEach(st => existingMap.set(st.id, st));
+
+                    imported.forEach(newSt => {
+                        if (existingMap.has(newSt.id)) {
+                            // Merge logic: keep existing confirmed entries if untouched in new file
+                            const oldSt = existingMap.get(newSt.id);
+                            if (oldSt.status !== 'untouched') {
+                                // Preserve old confirmed progress, but we might want to update top level metadata
+                                // We'll just keep the old fully to avoid losing any progress.
+                            } else {
+                                // Overwrite untouched
+                                existingMap.set(newSt.id, newSt);
+                            }
+                        } else {
+                            // New entry
+                            existingMap.set(newSt.id, newSt);
+                        }
+                    });
+
+                    // Update state and local storage
+                    const mergedArray = Array.from(existingMap.values());
+                    state[targetType] = mergedArray;
+                    localStorage.setItem(`hubconfirm_${targetType}`, JSON.stringify(mergedArray));
+
+                    updateUI();
+                    alert("Import and merge successful!");
+
+                } catch(err) {
+                    alert("Failed to parse JSON file.");
+                }
+            };
+            reader.readAsText(file);
+            // Reset input so the same file can be selected again
+            e.target.value = '';
+        });
+
+        // Bootstrap
+        init();
+    </script>
+</body>
+</html>

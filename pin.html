@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin Tool - Hub Confirm</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <style>
+        :root {
+            --bg-color: #121826;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+
+            /* Pin Colors */
+            --pin-main: #3b82f6; /* Blue */
+            --pin-carpark: #f97316; /* Orange */
+            --pin-bus: #22c55e; /* Green */
+            --pin-cycle: #eab308; /* Yellow */
+            --pin-taxi: #ef4444; /* Red */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 1.2rem;
+            padding: 5px;
+        }
+
+        .back-btn:hover { color: var(--text-main); }
+
+        .station-title {
+            margin: 0;
+            font-size: 1.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 400px;
+        }
+
+        .station-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .btn-flag {
+            background: transparent;
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-flag.active {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            position: relative;
+        }
+
+        /* Left Panel */
+        .sidebar {
+            width: 350px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            z-index: 500;
+        }
+
+        .panel-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        select, input[type="text"], textarea {
+            width: 100%;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: 1px solid var(--accent);
+            border-color: var(--accent);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        /* Car Park Toggle */
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .toggle-btn.active-yes { background: var(--success); color: white; border-color: var(--success); }
+        .toggle-btn.active-no { background: var(--danger); color: white; border-color: var(--danger); }
+        .toggle-btn.active-unsure { background: var(--warning); color: #000; border-color: var(--warning); }
+
+        /* Pins List */
+        .pins-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .pin-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid var(--border);
+            cursor: pointer;
+        }
+        .pin-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .pin-type-main { border-left-color: var(--pin-main); }
+        .pin-type-car_park { border-left-color: var(--pin-carpark); }
+        .pin-type-bus_interchange { border-left-color: var(--pin-bus); }
+        .pin-type-cycle_entrance { border-left-color: var(--pin-cycle); }
+        .pin-type-taxi_rank { border-left-color: var(--pin-taxi); }
+
+        .pin-actions span {
+            color: var(--danger);
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        /* Map Area */
+        #map {
+            flex: 1;
+            background-color: #aadaff; /* Default map bg */
+            z-index: 100;
+        }
+
+        /* Controls (Bottom panel) */
+        .controls {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 12px;
+            border-radius: 4px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-secondary { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .nav-buttons .btn { flex: 1; }
+
+        /* Coordinates Display */
+        .coords-display {
+            font-family: monospace;
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #0f0;
+            margin-top: 10px;
+        }
+
+        /* Responsive Mobile */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            #map {
+                height: 55%;
+                flex: none;
+            }
+            .sidebar {
+                width: 100%;
+                height: 45%;
+                border-right: none;
+                border-top: 1px solid var(--border);
+            }
+            .topbar-right .progress-text { display: none; }
+            .station-title { font-size: 1rem; }
+        }
+
+        /* Notification Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="back-btn">←</a>
+            <div>
+                <h2 class="station-title" id="ui-station-name">Loading...</h2>
+                <div class="station-meta" id="ui-station-meta">...</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <span class="progress-text" id="ui-progress">0 of 0</span>
+            <button class="btn-flag" id="btn-flag" onclick="toggleFlag()">⚑ Flag</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+
+            <div class="panel-section">
+                <h3>Station Properties</h3>
+                <div class="form-group">
+                    <label>Has Car Park?</label>
+                    <div class="toggle-group">
+                        <div class="toggle-btn" id="cp-yes" onclick="setCarPark(true)">Yes</div>
+                        <div class="toggle-btn" id="cp-no" onclick="setCarPark(false)">No</div>
+                        <div class="toggle-btn" id="cp-unsure" onclick="setCarPark(null)">?</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="ui-category" onchange="updateCategory()">
+                        <option value="large">Large Station</option>
+                        <option value="medium">Medium Station</option>
+                        <option value="small">Small Station</option>
+                        <option value="major">Major Terminal</option>
+                        <option value="local">Local Stop</option>
+                        <option value="city_centre">City Centre P&R</option>
+                        <option value="edge_of_town">Edge of Town P&R</option>
+                        <option value="motorway_junction">Motorway Junction P&R</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Existing Pins</h3>
+                <div class="pins-list" id="ui-pins-list">
+                    <!-- Populated by JS -->
+                </div>
+                <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="startNewPin()">+ Add new entrance pin</button>
+            </div>
+
+            <div class="panel-section" id="active-pin-panel" style="background: rgba(14, 165, 233, 0.1);">
+                <h3>Active Pin Details</h3>
+                <div class="form-group">
+                    <label>Entrance Type</label>
+                    <select id="pin-type" onchange="updateActivePinDisplay()">
+                        <option value="main">Main Entrance</option>
+                        <option value="car_park">Car Park Entrance</option>
+                        <option value="bus_interchange">Bus Interchange</option>
+                        <option value="cycle_entrance">Cycle Entrance</option>
+                        <option value="taxi_rank">Taxi Rank</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-group">
+                        <input type="checkbox" id="pin-primary">
+                        Is Primary / Most Used (for this type)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <input type="text" id="pin-notes" placeholder="e.g., Station Street entrance" maxlength="200">
+                </div>
+
+                <div class="coords-display" id="ui-coords">Lat: --<br>Lng: --</div>
+
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button class="btn btn-primary" style="flex:1" onclick="saveActivePin()">Save Pin</button>
+                    <button class="btn btn-secondary" onclick="cancelActivePin()">Cancel</button>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-success" id="btn-complete" onclick="markComplete()">✓ Mark Station Complete</button>
+
+                <div class="nav-buttons">
+                    <button class="btn btn-secondary" onclick="prevStation()">← Prev</button>
+                    <button class="btn btn-secondary" onclick="skipStation()">Skip →</button>
+                    <button class="btn btn-secondary" onclick="nextStation()">Next →</button>
+                </div>
+            </div>
+
+        </div>
+        <div id="map">
+            <button class="btn btn-secondary" style="position: absolute; top: 10px; right: 10px; z-index: 1000; padding: 5px 10px; font-size: 0.8rem;" onclick="locateMe()">📍 Locate Me</button>
+        </div>
+    </div>
+
+    <div id="toast">Saved ✓</div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let type = urlParams.get('type') || 'rail';
+        let resume = urlParams.get('resume') === 'true';
+
+        let data = [];
+        let currentIndex = 0;
+        let map;
+        let activeMarker = null;
+        let confirmedMarkers = {};
+
+        const pinColors = {
+            'main': '#3b82f6', // blue
+            'car_park': '#f97316', // orange
+            'bus_interchange': '#22c55e', // green
+            'cycle_entrance': '#eab308', // yellow
+            'taxi_rank': '#ef4444' // red
+        };
+
+        const pinLayerOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+        const pinLayerSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+
+        function createCustomIcon(color) {
+            const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40">
+                    <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z" fill="${color}"/>
+                    <circle cx="15" cy="15" r="5" fill="white"/>
+                </svg>`;
+            return L.divIcon({
+                className: 'custom-pin',
+                html: svg,
+                iconSize: [30, 40],
+                iconAnchor: [15, 40]
+            });
+        }
+
+        async function init() {
+            // Setup Map
+            map = L.map('map', {
+                zoomControl: true,
+                layers: [pinLayerOSM]
+            });
+
+            L.control.layers({
+                "Map (OSM)": pinLayerOSM,
+                "Satellite (Esri)": pinLayerSat
+            }).addTo(map);
+
+            // Click on map to move active pin
+            map.on('click', function(e) {
+                if (activeMarker) {
+                    activeMarker.setLatLng(e.latlng);
+                    updateCoordsDisplay(e.latlng);
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+                if (e.key === 'ArrowRight') nextStation();
+                if (e.key === 'ArrowLeft') prevStation();
+                if (e.key.toLowerCase() === 's') skipStation();
+                if (e.key.toLowerCase() === 'f') toggleFlag();
+                if (e.key.toLowerCase() === 'z') {
+                    // Undo functionality (cancel active pin if open, else remove last saved)
+                    if (activeMarker) cancelActivePin();
+                    else if (data[currentIndex] && data[currentIndex].entrances && data[currentIndex].entrances.length > 0) {
+                        deletePin(data[currentIndex].entrances.length - 1);
+                    }
+                }
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault(); // prevent scroll
+                    if (activeMarker) saveActivePin();
+                    else {
+                        const btn = document.getElementById('btn-complete');
+                        if (!btn.disabled) markComplete();
+                    }
+                }
+                if (e.key === '1') { map.addLayer(pinLayerOSM); map.removeLayer(pinLayerSat); }
+                if (e.key === '2') { map.addLayer(pinLayerSat); map.removeLayer(pinLayerOSM); }
+            });
+
+            await loadData();
+
+            if (resume) {
+                const lastIndex = localStorage.getItem(`hubconfirm_last_index_${type}`);
+                if (lastIndex !== null) currentIndex = parseInt(lastIndex);
+            }
+
+            // Find next incomplete if current is complete
+            if (data[currentIndex] && data[currentIndex].status === 'complete' && resume) {
+                 const nextInc = data.findIndex((d, i) => i >= currentIndex && d.status !== 'complete');
+                 if (nextInc !== -1) currentIndex = nextInc;
+            }
+
+            renderStation();
+        }
+
+        async function loadData() {
+            const lsKey = `hubconfirm_${type}`;
+            const stored = localStorage.getItem(lsKey);
+            if (stored) {
+                data = JSON.parse(stored);
+            } else {
+                try {
+                    let filename = type;
+                    if(type === 'rail') filename = 'rail_stations';
+                    const res = await fetch(`data/${filename}.json`);
+                    data = await res.json();
+                } catch (e) {
+                    alert("Failed to load initial data. Using empty set.");
+                    data = [];
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(`hubconfirm_${type}`, JSON.stringify(data));
+            localStorage.setItem(`hubconfirm_last_index_${type}`, currentIndex);
+            showToast();
+        }
+
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        function renderStation() {
+            if (!data || data.length === 0) return;
+            if (currentIndex < 0) currentIndex = 0;
+            if (currentIndex >= data.length) currentIndex = data.length - 1;
+
+            const st = data[currentIndex];
+
+            // Save current position for auto-resume
+            localStorage.setItem(`hubconfirm_last_index_${type}`, currentIndex);
+
+            // Update UI
+            document.getElementById('ui-station-name').innerText = st.name;
+            document.getElementById('ui-station-meta').innerText = `${st.region} · ${st.category || 'Unknown'} · ID: ${st.id}`;
+            document.getElementById('ui-progress').innerText = `${currentIndex + 1} of ${data.length}`;
+
+            // Category Select
+            const catSelect = document.getElementById('ui-category');
+            if(st.category) catSelect.value = st.category;
+
+            // Flag
+            const btnFlag = document.getElementById('btn-flag');
+            if (st.flagged) btnFlag.classList.add('active');
+            else btnFlag.classList.remove('active');
+
+            // Car Park toggles
+            updateCarParkUI(st.has_car_park);
+
+            // Clear map
+            if (activeMarker) { map.removeLayer(activeMarker); activeMarker = null; }
+            Object.values(confirmedMarkers).forEach(m => map.removeLayer(m));
+            confirmedMarkers = {};
+
+            // Render existing pins
+            st.entrances = st.entrances || [];
+            st.entrances.forEach((ent, idx) => {
+                addConfirmedMarker(ent, idx);
+            });
+
+            renderPinsList();
+            cancelActivePin(); // Hide active pin panel initially
+
+            // Center map
+            if (st.entrances.length > 0) {
+                // Center on first pin
+                map.setView([st.entrances[0].lat, st.entrances[0].lng], 17);
+            } else if (st.geocode_hint && st.geocode_hint.lat) {
+                map.setView([st.geocode_hint.lat, st.geocode_hint.lng], 16);
+            } else {
+                map.setView([54.0, -2.0], 6); // UK Center
+            }
+
+            checkCompleteState();
+        }
+
+        function setCarPark(val) {
+            const st = data[currentIndex];
+            st.has_car_park = val;
+            updateCarParkUI(val);
+
+            // If No or Unsure, remove any existing car park pins
+            if (val !== true) {
+                st.entrances = st.entrances.filter(e => e.entrance_type !== 'car_park');
+            }
+
+            saveData();
+            renderStation(); // re-render to update pins/lists
+        }
+
+        function updateCarParkUI(val) {
+            document.getElementById('cp-yes').classList.remove('active-yes');
+            document.getElementById('cp-no').classList.remove('active-no');
+            document.getElementById('cp-unsure').classList.remove('active-unsure');
+
+            if (val === true) document.getElementById('cp-yes').classList.add('active-yes');
+            if (val === false) document.getElementById('cp-no').classList.add('active-no');
+            if (val === null) document.getElementById('cp-unsure').classList.add('active-unsure');
+
+            // Filter dropdown options based on has_car_park
+            const typeSelect = document.getElementById('pin-type');
+            Array.from(typeSelect.options).forEach(opt => {
+                if (opt.value === 'car_park') {
+                    opt.disabled = (val !== true);
+                    if (opt.disabled && typeSelect.value === 'car_park') typeSelect.value = 'main';
+                }
+            });
+        }
+
+        function updateCategory() {
+            const st = data[currentIndex];
+            st.category = document.getElementById('ui-category').value;
+            saveData();
+        }
+
+        function toggleFlag() {
+            const st = data[currentIndex];
+            st.flagged = !st.flagged;
+            saveData();
+            renderStation();
+        }
+
+        /* Pin Logic */
+
+        function renderPinsList() {
+            const st = data[currentIndex];
+            const list = document.getElementById('ui-pins-list');
+            list.innerHTML = '';
+
+            st.entrances.forEach((ent, idx) => {
+                const div = document.createElement('div');
+                div.className = `pin-item pin-type-${ent.entrance_type}`;
+                div.innerHTML = `
+                    <div>
+                        <strong>${formatType(ent.entrance_type)}</strong>
+                        ${ent.is_primary ? '<small> (Primary)</small>' : ''}
+                        ${ent.notes ? `<br><small style="color:var(--text-muted)">${ent.notes}</small>` : ''}
+                    </div>
+                    <div class="pin-actions">
+                        <span onclick="editPin(${idx})">✎</span>
+                        <span onclick="deletePin(${idx})">🗑</span>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function formatType(type) {
+            return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function addConfirmedMarker(ent, idx) {
+            const color = pinColors[ent.entrance_type] || pinColors['main'];
+            const marker = L.marker([ent.lat, ent.lng], {
+                icon: createCustomIcon(color),
+                draggable: false
+            }).addTo(map);
+            marker.bindPopup(`<b>${formatType(ent.entrance_type)}</b><br>${ent.notes || ''}`);
+            confirmedMarkers[idx] = marker;
+        }
+
+        // Active Pin Editing
+        let editingIndex = -1;
+
+        function startNewPin() {
+            const st = data[currentIndex];
+            editingIndex = -1;
+            document.getElementById('active-pin-panel').style.display = 'block';
+            document.getElementById('pin-notes').value = '';
+            document.getElementById('pin-primary').checked = true;
+
+            // Default to main if no main exists
+            const hasMain = st.entrances.some(e => e.entrance_type === 'main');
+            if (!hasMain) document.getElementById('pin-type').value = 'main';
+
+            // Place active pin at center of current map view
+            const center = map.getCenter();
+            createActiveMarker(center.lat, center.lng);
+        }
+
+        function editPin(idx) {
+            const st = data[currentIndex];
+            const ent = st.entrances[idx];
+            editingIndex = idx;
+
+            document.getElementById('active-pin-panel').style.display = 'block';
+            document.getElementById('pin-type').value = ent.entrance_type;
+            document.getElementById('pin-primary').checked = ent.is_primary;
+            document.getElementById('pin-notes').value = ent.notes || '';
+
+            // Hide the confirmed marker temporarily
+            if(confirmedMarkers[idx]) map.removeLayer(confirmedMarkers[idx]);
+
+            createActiveMarker(ent.lat, ent.lng);
+            map.setView([ent.lat, ent.lng]);
+        }
+
+        function createActiveMarker(lat, lng) {
+            if (activeMarker) map.removeLayer(activeMarker);
+
+            const type = document.getElementById('pin-type').value;
+            const color = pinColors[type] || pinColors['main'];
+
+            activeMarker = L.marker([lat, lng], {
+                icon: createCustomIcon(color),
+                draggable: true,
+                zIndexOffset: 1000
+            }).addTo(map);
+
+            activeMarker.on('drag', function(e) {
+                updateCoordsDisplay(e.target.getLatLng());
+            });
+
+            updateCoordsDisplay({lat, lng});
+            activeMarker.getElement().style.filter = "drop-shadow(0 0 10px white)";
+        }
+
+        function updateActivePinDisplay() {
+            if (activeMarker) {
+                const type = document.getElementById('pin-type').value;
+                const color = pinColors[type] || pinColors['main'];
+                activeMarker.setIcon(createCustomIcon(color));
+            }
+        }
+
+        function updateCoordsDisplay(latlng) {
+            document.getElementById('ui-coords').innerHTML = `Lat: ${latlng.lat.toFixed(6)}<br>Lng: ${latlng.lng.toFixed(6)}`;
+        }
+
+        function cancelActivePin() {
+            document.getElementById('active-pin-panel').style.display = 'none';
+            if (activeMarker) { map.removeLayer(activeMarker); activeMarker = null; }
+            if (editingIndex !== -1 && confirmedMarkers[editingIndex]) {
+                // Restore hidden confirmed marker
+                confirmedMarkers[editingIndex].addTo(map);
+            }
+            editingIndex = -1;
+        }
+
+        function saveActivePin() {
+            if (!activeMarker) return;
+
+            const st = data[currentIndex];
+            const pos = activeMarker.getLatLng();
+            const eType = document.getElementById('pin-type').value;
+            const isPrimary = document.getElementById('pin-primary').checked;
+            const notes = document.getElementById('pin-notes').value.trim();
+
+            // Enforce Primary rule: Only one primary per type
+            if (isPrimary) {
+                st.entrances.forEach(e => {
+                    if (e.entrance_type === eType && e !== (editingIndex !== -1 ? st.entrances[editingIndex] : null)) {
+                        e.is_primary = false;
+                    }
+                });
+            }
+
+            const newEntrance = {
+                entrance_id: `${st.id}_${eType}_${Date.now()}`, // simple ID gen
+                entrance_type: eType,
+                is_primary: isPrimary,
+                lat: parseFloat(pos.lat.toFixed(6)),
+                lng: parseFloat(pos.lng.toFixed(6)),
+                notes: notes,
+                confirmed_at: new Date().toISOString()
+            };
+
+            if (editingIndex !== -1) {
+                // Keep old ID
+                newEntrance.entrance_id = st.entrances[editingIndex].entrance_id;
+                st.entrances[editingIndex] = newEntrance;
+            } else {
+                st.entrances.push(newEntrance);
+            }
+
+            st.status = 'partial'; // Any pin means partial at least
+
+            saveData();
+            renderStation();
+        }
+
+        function deletePin(idx) {
+            if(confirm("Delete this pin?")) {
+                data[currentIndex].entrances.splice(idx, 1);
+                saveData();
+                renderStation();
+            }
+        }
+
+        /* Navigation & Status */
+
+        function checkCompleteState() {
+            const st = data[currentIndex];
+            const btn = document.getElementById('btn-complete');
+
+            const hasMain = st.entrances.some(e => e.entrance_type === 'main');
+            const hasCarParkResponded = (st.has_car_park === true || st.has_car_park === false);
+
+            if (hasMain && hasCarParkResponded) {
+                btn.disabled = false;
+                btn.innerText = "✓ Mark Station Complete";
+            } else {
+                btn.disabled = true;
+                if (!hasMain) btn.innerText = "Requires Main Entrance";
+                else if (!hasCarParkResponded) btn.innerText = "Requires Car Park answer";
+            }
+        }
+
+        function markComplete() {
+            const st = data[currentIndex];
+            st.status = 'complete';
+            st.skipped = false;
+            saveData();
+
+            // Auto advance
+            nextStation();
+        }
+
+        function skipStation() {
+            const st = data[currentIndex];
+            st.status = 'skipped';
+            st.skipped = true;
+            saveData();
+            nextStation();
+        }
+
+        function locateMe() {
+            map.locate({setView: true, maxZoom: 16});
+            map.on('locationerror', function(e) {
+                alert("Could not find your location: " + e.message);
+            });
+        }
+
+        function nextStation() {
+            // Find next incomplete station
+            let nextIdx = data.findIndex((d, i) => i > currentIndex && d.status !== 'complete');
+
+            // If none found after current, loop around
+            if (nextIdx === -1) {
+                nextIdx = data.findIndex((d, i) => i <= currentIndex && d.status !== 'complete');
+            }
+
+            if (nextIdx !== -1 && nextIdx !== currentIndex) {
+                currentIndex = nextIdx;
+                renderStation();
+            } else {
+                alert("All stations marked complete! End of list reached.");
+                window.location.href = "index.html";
+            }
+        }
+
+        function prevStation() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderStation();
+            }
+        }
+
+        // Bootstrap
+        window.onload = init;
+    </script>
+</body>
+</html>
