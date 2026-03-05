@@ -91,7 +91,7 @@
             color: var(--text-muted);
         }
 
-        .btn-flag {
+        .btn-flag, .btn-filter {
             background: transparent;
             border: 1px solid var(--warning);
             color: var(--warning);
@@ -103,6 +103,25 @@
         .btn-flag.active {
             background: var(--warning);
             color: white;
+        }
+
+        /* Search Filter Overlay */
+        .filter-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .filter-modal {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            border: 1px solid var(--border);
         }
 
         /* Main Layout */
@@ -307,6 +326,26 @@
             pointer-events: none;
             z-index: 9999;
         }
+
+        /* Pulse Animation */
+        @keyframes pulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0.7)); }
+            50% { transform: scale(1.1); filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+        }
+        .pulse-anim {
+            animation: pulse 1.5s infinite;
+        }
+
+        .external-links a {
+            color: var(--accent);
+            text-decoration: none;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        .external-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -322,6 +361,39 @@
         <div class="topbar-right">
             <span class="progress-text" id="ui-progress">0 of 0</span>
             <button class="btn-flag" id="btn-flag" onclick="toggleFlag()">⚑ Flag</button>
+            <button class="btn-filter" onclick="document.getElementById('filter-overlay').style.display='flex'">🔍 Search</button>
+        </div>
+    </div>
+
+    <!-- Search/Filter Overlay -->
+    <div id="filter-overlay" class="filter-overlay">
+        <div class="filter-modal">
+            <h3 style="margin-top:0;">Search & Filter</h3>
+            <div class="form-group">
+                <label>Search by Name</label>
+                <input type="text" id="filter-name" placeholder="Station name...">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="filter-status">
+                    <option value="">Any</option>
+                    <option value="unreviewed">Unreviewed</option>
+                    <option value="needs_review">Needs Review</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="complete">Complete</option>
+                    <option value="flagged">Flagged</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Region</label>
+                <select id="filter-region">
+                    <option value="">Any</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="applyFilters()">Apply</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('filter-overlay').style.display='none'">Close</button>
+            </div>
         </div>
     </div>
 
@@ -415,12 +487,14 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         let type = urlParams.get('type') || 'rail';
-        let resume = urlParams.get('resume') === 'true';
+        let filterMode = urlParams.get('filter') || 'queue'; // 'queue', 'needs_review', 'flagged', 'all'
 
-        let data = [];
+        let allData = [];
+        let queue = [];
         let currentIndex = 0;
         let map;
         let activeMarker = null;
+        let autoMarkers = {};
         let confirmedMarkers = {};
 
         const pinColors = {
@@ -434,10 +508,34 @@
         const pinLayerOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
         const pinLayerSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 
-        function createCustomIcon(color) {
+        function createCustomIcon(color, confidence, confirmed) {
+            let opacity = 1.0;
+            let stroke = 'none';
+            let strokeWidth = 0;
+            let dasharray = 'none';
+            let pulseClass = '';
+
+            if (!confirmed) {
+                if (confidence === 'medium') {
+                    opacity = 0.7;
+                    stroke = 'white';
+                    strokeWidth = 2;
+                    dasharray = '3,3';
+                } else if (confidence === 'low') {
+                    opacity = 0.4;
+                    stroke = 'red';
+                    strokeWidth = 3;
+                    pulseClass = 'pulse-anim';
+                } else if (confidence === 'none') {
+                    opacity = 0.8;
+                    stroke = 'white';
+                    strokeWidth = 1;
+                }
+            }
+
             const svg = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40">
-                    <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z" fill="${color}"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40" class="${pulseClass}" style="opacity: ${opacity}">
+                    <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z" fill="${color}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-dasharray="${dasharray}"/>
                     <circle cx="15" cy="15" r="5" fill="white"/>
                 </svg>`;
             return L.divIcon({
@@ -479,8 +577,8 @@
                 if (e.key.toLowerCase() === 'z') {
                     // Undo functionality (cancel active pin if open, else remove last saved)
                     if (activeMarker) cancelActivePin();
-                    else if (data[currentIndex] && data[currentIndex].entrances && data[currentIndex].entrances.length > 0) {
-                        deletePin(data[currentIndex].entrances.length - 1);
+                else if (queue[currentIndex] && queue[currentIndex].entrances && queue[currentIndex].entrances.length > 0) {
+                    deletePin(queue[currentIndex].entrances.length - 1);
                     }
                 }
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -496,16 +594,16 @@
             });
 
             await loadData();
+            buildQueue();
 
-            if (resume) {
-                const lastIndex = localStorage.getItem(`hubconfirm_last_index_${type}`);
-                if (lastIndex !== null) currentIndex = parseInt(lastIndex);
-            }
-
-            // Find next incomplete if current is complete
-            if (data[currentIndex] && data[currentIndex].status === 'complete' && resume) {
-                 const nextInc = data.findIndex((d, i) => i >= currentIndex && d.status !== 'complete');
-                 if (nextInc !== -1) currentIndex = nextInc;
+            if (filterMode === 'queue') {
+                const lastId = localStorage.getItem(`hubconfirm_last_id_${type}`);
+                if (lastId) {
+                    const idx = queue.findIndex(s => s.id === lastId);
+                    if (idx !== -1) currentIndex = idx;
+                }
+            } else {
+                currentIndex = 0;
             }
 
             renderStation();
@@ -515,23 +613,83 @@
             const lsKey = `hubconfirm_${type}`;
             const stored = localStorage.getItem(lsKey);
             if (stored) {
-                data = JSON.parse(stored);
+                allData = JSON.parse(stored);
             } else {
                 try {
                     let filename = type;
                     if(type === 'rail') filename = 'rail_stations';
                     const res = await fetch(`data/${filename}.json`);
-                    data = await res.json();
+                    allData = await res.json();
                 } catch (e) {
                     alert("Failed to load initial data. Using empty set.");
-                    data = [];
+                    allData = [];
                 }
             }
         }
 
+        function buildQueue() {
+            if (filterMode === 'flagged') {
+                queue = allData.filter(s => s.flagged);
+            } else if (filterMode === 'needs_review') {
+                queue = allData.filter(s => s.status === 'needs_review' && s.status !== 'complete');
+            } else if (filterMode === 'all') {
+                queue = [...allData];
+            } else {
+                // Default Smart Queue Order
+                // needs_review -> unreviewed -> in_progress -> skipped
+                const needs = allData.filter(s => s.status === 'needs_review');
+                const unrev = allData.filter(s => s.status === 'unreviewed' || s.status === 'untouched');
+                const inprog = allData.filter(s => s.status === 'in_progress' || s.status === 'partial');
+                const skipped = allData.filter(s => s.status === 'skipped');
+
+                queue = [...needs, ...unrev, ...inprog, ...skipped];
+
+                // If everything is complete
+                if (queue.length === 0) {
+                    queue = allData.filter(s => s.status === 'complete');
+                }
+            }
+            populateRegionFilter();
+        }
+
+        function populateRegionFilter() {
+            const regions = new Set();
+            allData.forEach(s => {
+                if(s.region) regions.add(s.region);
+            });
+            const sel = document.getElementById('filter-region');
+            sel.innerHTML = '<option value="">Any</option>';
+            Array.from(regions).sort().forEach(r => {
+                sel.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+        }
+
+        function applyFilters() {
+            const fName = document.getElementById('filter-name').value.toLowerCase();
+            const fStatus = document.getElementById('filter-status').value;
+            const fRegion = document.getElementById('filter-region').value;
+
+            queue = allData.filter(s => {
+                let match = true;
+                if (fName && !s.name.toLowerCase().includes(fName)) match = false;
+                if (fStatus) {
+                    if (fStatus === 'flagged' && !s.flagged) match = false;
+                    else if (fStatus !== 'flagged' && s.status !== fStatus && !(fStatus==='unreviewed' && s.status==='untouched') && !(fStatus==='in_progress' && s.status==='partial')) match = false;
+                }
+                if (fRegion && s.region !== fRegion) match = false;
+                return match;
+            });
+
+            document.getElementById('filter-overlay').style.display = 'none';
+            currentIndex = 0;
+            renderStation();
+        }
+
         function saveData() {
-            localStorage.setItem(`hubconfirm_${type}`, JSON.stringify(data));
-            localStorage.setItem(`hubconfirm_last_index_${type}`, currentIndex);
+            localStorage.setItem(`hubconfirm_${type}`, JSON.stringify(allData));
+            if (queue.length > 0 && filterMode === 'queue') {
+                localStorage.setItem(`hubconfirm_last_id_${type}`, queue[currentIndex].id);
+            }
             showToast();
         }
 
@@ -542,19 +700,25 @@
         }
 
         function renderStation() {
-            if (!data || data.length === 0) return;
+            if (!queue || queue.length === 0) {
+                document.getElementById('ui-station-name').innerText = "Queue Empty";
+                document.getElementById('ui-station-meta').innerText = "Return to Dashboard";
+                return;
+            }
+
             if (currentIndex < 0) currentIndex = 0;
-            if (currentIndex >= data.length) currentIndex = data.length - 1;
+            if (currentIndex >= queue.length) currentIndex = queue.length - 1;
 
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
 
-            // Save current position for auto-resume
-            localStorage.setItem(`hubconfirm_last_index_${type}`, currentIndex);
+            if (filterMode === 'queue') {
+                localStorage.setItem(`hubconfirm_last_id_${type}`, st.id);
+            }
 
             // Update UI
             document.getElementById('ui-station-name').innerText = st.name;
             document.getElementById('ui-station-meta').innerText = `${st.region} · ${st.category || 'Unknown'} · ID: ${st.id}`;
-            document.getElementById('ui-progress').innerText = `${currentIndex + 1} of ${data.length}`;
+            document.getElementById('ui-progress').innerText = `${currentIndex + 1} of ${queue.length}`;
 
             // Category Select
             const catSelect = document.getElementById('ui-category');
@@ -568,15 +732,29 @@
             // Car Park toggles
             updateCarParkUI(st.has_car_park);
 
+            // External Links UI
+            let linksHtml = `<a href="https://www.openstreetmap.org/?mlat=${st.centre_lat}&mlon=${st.centre_lng}#map=17/${st.centre_lat}/${st.centre_lng}" target="_blank">OSM ↗</a>`;
+            linksHtml += `<a href="https://www.google.com/maps?q=${st.centre_lat},${st.centre_lng}" target="_blank">Google ↗</a>`;
+            linksHtml += `<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${st.centre_lat},${st.centre_lng}" target="_blank">Street View ↗</a>`;
+            if (st.source_url) {
+                linksHtml += `<a href="${st.source_url}" target="_blank">Wiki ↗</a>`;
+            }
+
+            // Just putting them under the station meta temporarily, ideally they have a dedicated div
+            document.getElementById('ui-station-meta').innerHTML = `${st.region} · ${st.category || 'Unknown'} · ID: ${st.id}<br><div class="external-links" style="margin-top:5px;">${linksHtml}</div>`;
+
+
             // Clear map
             if (activeMarker) { map.removeLayer(activeMarker); activeMarker = null; }
+            Object.values(autoMarkers).forEach(m => map.removeLayer(m));
             Object.values(confirmedMarkers).forEach(m => map.removeLayer(m));
+            autoMarkers = {};
             confirmedMarkers = {};
 
             // Render existing pins
             st.entrances = st.entrances || [];
             st.entrances.forEach((ent, idx) => {
-                addConfirmedMarker(ent, idx);
+                addPinMarker(ent, idx);
             });
 
             renderPinsList();
@@ -584,10 +762,9 @@
 
             // Center map
             if (st.entrances.length > 0) {
-                // Center on first pin
                 map.setView([st.entrances[0].lat, st.entrances[0].lng], 17);
-            } else if (st.geocode_hint && st.geocode_hint.lat) {
-                map.setView([st.geocode_hint.lat, st.geocode_hint.lng], 16);
+            } else if (st.centre_lat && st.centre_lng) {
+                map.setView([st.centre_lat, st.centre_lng], 16);
             } else {
                 map.setView([54.0, -2.0], 6); // UK Center
             }
@@ -596,7 +773,7 @@
         }
 
         function setCarPark(val) {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             st.has_car_park = val;
             updateCarParkUI(val);
 
@@ -629,13 +806,13 @@
         }
 
         function updateCategory() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             st.category = document.getElementById('ui-category').value;
             saveData();
         }
 
         function toggleFlag() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             st.flagged = !st.flagged;
             saveData();
             renderStation();
@@ -644,21 +821,29 @@
         /* Pin Logic */
 
         function renderPinsList() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             const list = document.getElementById('ui-pins-list');
             list.innerHTML = '';
 
             st.entrances.forEach((ent, idx) => {
                 const div = document.createElement('div');
                 div.className = `pin-item pin-type-${ent.entrance_type}`;
+
+                let confStatus = ent.confirmed ? '✅' : '❓';
+                if (!ent.confirmed) {
+                     if (ent.confidence === 'low') confStatus = '⚠️';
+                     if (ent.confidence === 'high') confStatus = '🔹';
+                }
+
                 div.innerHTML = `
-                    <div>
-                        <strong>${formatType(ent.entrance_type)}</strong>
+                    <div onclick="editPin(${idx})" style="flex:1; cursor:pointer;">
+                        <strong>${confStatus} ${formatType(ent.entrance_type)}</strong>
                         ${ent.is_primary ? '<small> (Primary)</small>' : ''}
-                        ${ent.notes ? `<br><small style="color:var(--text-muted)">${ent.notes}</small>` : ''}
+                        <div style="font-size:0.8rem; color:var(--text-muted)">${ent.confidence} conf. ${ent.confirmed ? '| Confirmed' : ''}</div>
+                        ${ent.notes ? `<div style="font-size:0.8rem; color:var(--text-muted)">${ent.notes}</div>` : ''}
                     </div>
                     <div class="pin-actions">
-                        <span onclick="editPin(${idx})">✎</span>
+                        ${!ent.confirmed ? `<span onclick="confirmPin(${idx})">✅</span>` : ''}
                         <span onclick="deletePin(${idx})">🗑</span>
                     </div>
                 `;
@@ -670,21 +855,36 @@
             return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         }
 
-        function addConfirmedMarker(ent, idx) {
+        function addPinMarker(ent, idx) {
             const color = pinColors[ent.entrance_type] || pinColors['main'];
             const marker = L.marker([ent.lat, ent.lng], {
-                icon: createCustomIcon(color),
+                icon: createCustomIcon(color, ent.confidence, ent.confirmed),
                 draggable: false
             }).addTo(map);
-            marker.bindPopup(`<b>${formatType(ent.entrance_type)}</b><br>${ent.notes || ''}`);
-            confirmedMarkers[idx] = marker;
+
+            marker.bindPopup(`<b>${formatType(ent.entrance_type)}</b><br>${ent.confirmed ? 'Confirmed' : 'Unconfirmed'} (${ent.confidence})`);
+
+            if (ent.confirmed) {
+                confirmedMarkers[idx] = marker;
+            } else {
+                autoMarkers[idx] = marker;
+            }
+        }
+
+        function confirmPin(idx) {
+            const st = queue[currentIndex];
+            st.entrances[idx].confirmed = true;
+            st.entrances[idx].confirmed_at = new Date().toISOString();
+
+            saveData();
+            renderStation();
         }
 
         // Active Pin Editing
         let editingIndex = -1;
 
         function startNewPin() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             editingIndex = -1;
             document.getElementById('active-pin-panel').style.display = 'block';
             document.getElementById('pin-notes').value = '';
@@ -696,11 +896,11 @@
 
             // Place active pin at center of current map view
             const center = map.getCenter();
-            createActiveMarker(center.lat, center.lng);
+            createActiveMarker(center.lat, center.lng, document.getElementById('pin-type').value, 'high', false);
         }
 
         function editPin(idx) {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             const ent = st.entrances[idx];
             editingIndex = idx;
 
@@ -709,21 +909,21 @@
             document.getElementById('pin-primary').checked = ent.is_primary;
             document.getElementById('pin-notes').value = ent.notes || '';
 
-            // Hide the confirmed marker temporarily
+            // Hide the confirmed/auto marker temporarily
             if(confirmedMarkers[idx]) map.removeLayer(confirmedMarkers[idx]);
+            if(autoMarkers[idx]) map.removeLayer(autoMarkers[idx]);
 
-            createActiveMarker(ent.lat, ent.lng);
+            createActiveMarker(ent.lat, ent.lng, ent.entrance_type, ent.confidence, ent.confirmed);
             map.setView([ent.lat, ent.lng]);
         }
 
-        function createActiveMarker(lat, lng) {
+        function createActiveMarker(lat, lng, eType, confidence, confirmed) {
             if (activeMarker) map.removeLayer(activeMarker);
 
-            const type = document.getElementById('pin-type').value;
-            const color = pinColors[type] || pinColors['main'];
+            const color = pinColors[eType] || pinColors['main'];
 
             activeMarker = L.marker([lat, lng], {
-                icon: createCustomIcon(color),
+                icon: createCustomIcon(color, confidence, confirmed),
                 draggable: true,
                 zIndexOffset: 1000
             }).addTo(map);
@@ -733,14 +933,21 @@
             });
 
             updateCoordsDisplay({lat, lng});
-            activeMarker.getElement().style.filter = "drop-shadow(0 0 10px white)";
+
+            // Highlight active marker visually
+            setTimeout(() => {
+                if(activeMarker && activeMarker.getElement()) {
+                    activeMarker.getElement().style.filter = "drop-shadow(0 0 10px white)";
+                }
+            }, 100);
         }
 
         function updateActivePinDisplay() {
             if (activeMarker) {
-                const type = document.getElementById('pin-type').value;
-                const color = pinColors[type] || pinColors['main'];
-                activeMarker.setIcon(createCustomIcon(color));
+                const eType = document.getElementById('pin-type').value;
+                const color = pinColors[eType] || pinColors['main'];
+                // Assume high confidence and confirmed if editing type
+                activeMarker.setIcon(createCustomIcon(color, 'high', true));
             }
         }
 
@@ -751,9 +958,9 @@
         function cancelActivePin() {
             document.getElementById('active-pin-panel').style.display = 'none';
             if (activeMarker) { map.removeLayer(activeMarker); activeMarker = null; }
-            if (editingIndex !== -1 && confirmedMarkers[editingIndex]) {
-                // Restore hidden confirmed marker
-                confirmedMarkers[editingIndex].addTo(map);
+            if (editingIndex !== -1) {
+                if(confirmedMarkers[editingIndex]) confirmedMarkers[editingIndex].addTo(map);
+                if(autoMarkers[editingIndex]) autoMarkers[editingIndex].addTo(map);
             }
             editingIndex = -1;
         }
@@ -761,7 +968,7 @@
         function saveActivePin() {
             if (!activeMarker) return;
 
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             const pos = activeMarker.getLatLng();
             const eType = document.getElementById('pin-type').value;
             const isPrimary = document.getElementById('pin-primary').checked;
@@ -783,18 +990,22 @@
                 lat: parseFloat(pos.lat.toFixed(6)),
                 lng: parseFloat(pos.lng.toFixed(6)),
                 notes: notes,
-                confirmed_at: new Date().toISOString()
+                confirmed: true,
+                confidence: "high", // Saving a pin means it's confirmed & high conf
+                confirmed_at: new Date().toISOString(),
+                source: "operator"
             };
 
             if (editingIndex !== -1) {
-                // Keep old ID
+                // Keep old ID and source if we're just modifying
                 newEntrance.entrance_id = st.entrances[editingIndex].entrance_id;
+                newEntrance.source = st.entrances[editingIndex].source;
                 st.entrances[editingIndex] = newEntrance;
             } else {
                 st.entrances.push(newEntrance);
             }
 
-            st.status = 'partial'; // Any pin means partial at least
+            st.status = 'in_progress';
 
             saveData();
             renderStation();
@@ -802,7 +1013,7 @@
 
         function deletePin(idx) {
             if(confirm("Delete this pin?")) {
-                data[currentIndex].entrances.splice(idx, 1);
+                queue[currentIndex].entrances.splice(idx, 1);
                 saveData();
                 renderStation();
             }
@@ -811,24 +1022,26 @@
         /* Navigation & Status */
 
         function checkCompleteState() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             const btn = document.getElementById('btn-complete');
 
             const hasMain = st.entrances.some(e => e.entrance_type === 'main');
             const hasCarParkResponded = (st.has_car_park === true || st.has_car_park === false);
+            const allConfirmed = st.entrances.length > 0 && st.entrances.every(e => e.confirmed);
 
-            if (hasMain && hasCarParkResponded) {
+            if (hasMain && hasCarParkResponded && allConfirmed) {
                 btn.disabled = false;
                 btn.innerText = "✓ Mark Station Complete";
             } else {
                 btn.disabled = true;
                 if (!hasMain) btn.innerText = "Requires Main Entrance";
                 else if (!hasCarParkResponded) btn.innerText = "Requires Car Park answer";
+                else if (!allConfirmed) btn.innerText = "Confirm all pins";
             }
         }
 
         function markComplete() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             st.status = 'complete';
             st.skipped = false;
             saveData();
@@ -838,7 +1051,7 @@
         }
 
         function skipStation() {
-            const st = data[currentIndex];
+            const st = queue[currentIndex];
             st.status = 'skipped';
             st.skipped = true;
             saveData();
@@ -853,19 +1066,12 @@
         }
 
         function nextStation() {
-            // Find next incomplete station
-            let nextIdx = data.findIndex((d, i) => i > currentIndex && d.status !== 'complete');
-
-            // If none found after current, loop around
-            if (nextIdx === -1) {
-                nextIdx = data.findIndex((d, i) => i <= currentIndex && d.status !== 'complete');
-            }
-
-            if (nextIdx !== -1 && nextIdx !== currentIndex) {
-                currentIndex = nextIdx;
+            if (currentIndex < queue.length - 1) {
+                currentIndex++;
                 renderStation();
             } else {
-                alert("All stations marked complete! End of list reached.");
+                // If we've hit the end of the current queue...
+                alert("End of current queue reached.");
                 window.location.href = "index.html";
             }
         }

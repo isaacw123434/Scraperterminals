@@ -1,0 +1,22 @@
+[
+  {
+    "id": "coach_001",
+    "name": "Victoria Coach Station",
+    "region": "London",
+    "source": "wikipedia",
+    "centre_lat": 51.4926693,
+    "centre_lng": -0.149216,
+    "category": "major",
+    "entrances": []
+  },
+  {
+    "id": "coach_002",
+    "name": "Birmingham Coach Station",
+    "region": "West Midlands",
+    "source": "wikipedia",
+    "centre_lat": 52.4753014,
+    "centre_lng": -1.8884997,
+    "category": "major",
+    "entrances": []
+  }
+]

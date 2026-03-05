@@ -1,0 +1,102 @@
+[
+  {
+    "id": "9100ABDARE",
+    "name": "Aberdare Rail Station",
+    "region": "Aberdare",
+    "source": "naptan",
+    "centre_lat": 51.71505790608,
+    "centre_lng": -3.44308344608,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100ASHYDN",
+    "name": "Ashley Down",
+    "region": "Horfield",
+    "source": "naptan",
+    "centre_lat": 51.47875,
+    "centre_lng": -2.5767,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100SWNACFC",
+    "name": "Corfe Castle",
+    "region": "Corfe Castle",
+    "source": "naptan",
+    "centre_lat": 50.6383,
+    "centre_lng": -2.0551,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100BEULYPK",
+    "name": "Beaulieu Park",
+    "region": "Beaulieu",
+    "source": "naptan",
+    "centre_lat": 51.758057,
+    "centre_lng": 0.5183357,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100ELINTN",
+    "name": "East Linton",
+    "region": "East Linton",
+    "source": "naptan",
+    "centre_lat": 55.9856,
+    "centre_lng": -2.6579,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100HBOLTN",
+    "name": "Headbolt Lane",
+    "region": "Tower Hill",
+    "source": "naptan",
+    "centre_lat": 53.491136,
+    "centre_lng": -2.885591,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100THANETP",
+    "name": "Thanet Parkway",
+    "region": "Cliffs End",
+    "source": "naptan",
+    "centre_lat": 51.330843,
+    "centre_lng": 1.361777,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100MSBTN",
+    "name": "Marsh Barton",
+    "region": "Marsh Barton",
+    "source": "naptan",
+    "centre_lat": 50.7043,
+    "centre_lng": -3.52133,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100REDGGPK",
+    "name": "Reading Green Park",
+    "region": "GreenPark",
+    "source": "naptan",
+    "centre_lat": 51.426667,
+    "centre_lng": -1.001389,
+    "category": null,
+    "entrances": []
+  },
+  {
+    "id": "9100IVRNAIR",
+    "name": "Inverness Airport",
+    "region": "Inverness Airport",
+    "source": "naptan",
+    "centre_lat": 57.5335,
+    "centre_lng": -4.0552,
+    "category": null,
+    "entrances": []
+  }
+]
