@@ -1825,12 +1825,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "coach_002",
@@ -3208,11 +3203,6 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   }
 ]

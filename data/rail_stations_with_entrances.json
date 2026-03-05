@@ -408,12 +408,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100ASHYDN",
@@ -738,12 +733,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100SWNACFC",
@@ -1083,12 +1073,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100BEULYPK",
@@ -1441,12 +1426,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100ELINTN",
@@ -1615,12 +1595,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "needs_review",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100HBOLTN",
@@ -1715,12 +1690,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100THANETP",
@@ -1817,12 +1787,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100MSBTN",
@@ -2074,12 +2039,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100REDGGPK",
@@ -2301,12 +2261,7 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   },
   {
     "id": "9100IVRNAIR",
@@ -2512,11 +2467,6 @@
         "confirmed_at": null,
         "notes": ""
       }
-    ],
-    "has_car_park": true,
-    "status": "unreviewed",
-    "flagged": false,
-    "skipped": false,
-    "last_edited": null
+    ]
   }
 ]

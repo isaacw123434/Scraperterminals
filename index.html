@@ -109,6 +109,8 @@
         .progress-fill-success { background-color: var(--success); }
         .progress-fill-partial { background-color: var(--warning); }
         .progress-fill-skipped { background-color: var(--text-muted); }
+        .progress-fill-needs-review { background-color: var(--danger); }
+        .progress-fill-unreviewed { background-color: #475569; }
 
         .card-stats {
             display: grid;
@@ -245,16 +247,19 @@
                     </div>
                 </div>
                 <div class="card-stats">
-                    <div>Partial: <strong id="rail-partial">0</strong></div>
+                    <div>✅ Complete: <strong id="rail-complete-stat">0</strong></div>
+                    <div>🔄 In progress: <strong id="rail-partial">0</strong></div>
+                    <div>⚠️ Needs review: <strong id="rail-needs-review">0</strong></div>
+                    <div>⬜ Unreviewed: <strong id="rail-unreviewed">0</strong></div>
+                    <div>🚩 Flagged: <strong id="rail-flagged">0</strong></div>
                     <div>Pins placed: <strong id="rail-pins">0</strong></div>
-                    <div>Skipped: <strong id="rail-skipped">0</strong></div>
-                    <div>Flagged: <strong id="rail-flagged">0</strong></div>
                 </div>
                 <div class="card-actions">
-                    <a href="pin.html?type=rail&resume=true" class="btn">Continue →</a>
+                    <a href="verify.html?type=rail&filter=queue" class="btn">Continue →</a>
+                    <a href="verify.html?type=rail&filter=needs_review" class="btn btn-secondary">Review low confidence →</a>
                     <div class="links">
-                        <a href="pin.html?type=rail&resume=false">Start from beginning</a>
-                        <a href="#" onclick="alert('Not implemented in prototype')">View flagged</a>
+                        <a href="verify.html?type=rail&filter=flagged">Review flagged</a>
+                        <a href="verify.html?type=rail&filter=all">View all stations</a>
                     </div>
                 </div>
             </div>
@@ -271,16 +276,19 @@
                     </div>
                 </div>
                 <div class="card-stats">
-                    <div>Partial: <strong id="coach-partial">0</strong></div>
+                    <div>✅ Complete: <strong id="coach-complete-stat">0</strong></div>
+                    <div>🔄 In progress: <strong id="coach-partial">0</strong></div>
+                    <div>⚠️ Needs review: <strong id="coach-needs-review">0</strong></div>
+                    <div>⬜ Unreviewed: <strong id="coach-unreviewed">0</strong></div>
+                    <div>🚩 Flagged: <strong id="coach-flagged">0</strong></div>
                     <div>Pins placed: <strong id="coach-pins">0</strong></div>
-                    <div>Skipped: <strong id="coach-skipped">0</strong></div>
-                    <div>Flagged: <strong id="coach-flagged">0</strong></div>
                 </div>
                 <div class="card-actions">
-                    <a href="pin.html?type=coach_terminals&resume=true" class="btn">Continue →</a>
+                    <a href="verify.html?type=coach_terminals&filter=queue" class="btn">Continue →</a>
+                    <a href="verify.html?type=coach_terminals&filter=needs_review" class="btn btn-secondary">Review low confidence →</a>
                     <div class="links">
-                        <a href="pin.html?type=coach_terminals&resume=false">Start from beginning</a>
-                        <a href="#">View flagged</a>
+                        <a href="verify.html?type=coach_terminals&filter=flagged">Review flagged</a>
+                        <a href="verify.html?type=coach_terminals&filter=all">View all stations</a>
                     </div>
                 </div>
             </div>
@@ -297,16 +305,19 @@
                     </div>
                 </div>
                 <div class="card-stats">
-                    <div>Partial: <strong id="pr-partial">0</strong></div>
+                    <div>✅ Complete: <strong id="pr-complete-stat">0</strong></div>
+                    <div>🔄 In progress: <strong id="pr-partial">0</strong></div>
+                    <div>⚠️ Needs review: <strong id="pr-needs-review">0</strong></div>
+                    <div>⬜ Unreviewed: <strong id="pr-unreviewed">0</strong></div>
+                    <div>🚩 Flagged: <strong id="pr-flagged">0</strong></div>
                     <div>Pins placed: <strong id="pr-pins">0</strong></div>
-                    <div>Skipped: <strong id="pr-skipped">0</strong></div>
-                    <div>Flagged: <strong id="pr-flagged">0</strong></div>
                 </div>
                 <div class="card-actions">
-                    <a href="pin.html?type=park_and_ride&resume=true" class="btn">Continue →</a>
+                    <a href="verify.html?type=park_and_ride&filter=queue" class="btn">Continue →</a>
+                    <a href="verify.html?type=park_and_ride&filter=needs_review" class="btn btn-secondary">Review low confidence →</a>
                     <div class="links">
-                        <a href="pin.html?type=park_and_ride&resume=false">Start from beginning</a>
-                        <a href="#">View flagged</a>
+                        <a href="verify.html?type=park_and_ride&filter=flagged">Review flagged</a>
+                        <a href="verify.html?type=park_and_ride&filter=all">View all stations</a>
                     </div>
                 </div>
             </div>
@@ -364,17 +375,22 @@
             let partial = 0;
             let skipped = 0;
             let flagged = 0;
+            let needs_review = 0;
+            let unreviewed = 0;
             let pins = 0;
 
             data.forEach(station => {
                 if (station.status === 'complete') complete++;
-                if (station.status === 'partial') partial++;
-                if (station.status === 'skipped') skipped++;
+                else if (station.status === 'in_progress' || station.status === 'partial') partial++;
+                else if (station.status === 'needs_review') needs_review++;
+                else if (station.status === 'unreviewed' || station.status === 'untouched') unreviewed++;
+                else if (station.status === 'skipped') skipped++;
+
                 if (station.flagged) flagged++;
-                if (station.entrances) pins += station.entrances.length;
+                if (station.entrances) pins += station.entrances.filter(e => e.confirmed).length;
             });
 
-            return { total, complete, partial, skipped, flagged, pins };
+            return { total, complete, partial, needs_review, unreviewed, skipped, flagged, pins };
         }
 
         function updateUI() {
@@ -393,16 +409,22 @@
                 const prefix = type === 'coach_terminals' ? 'coach' : type === 'park_and_ride' ? 'pr' : 'rail';
                 const percent = stats.total > 0 ? Math.round((stats.complete / stats.total) * 100) : 0;
                 const partialPercent = stats.total > 0 ? Math.round((stats.partial / stats.total) * 100) : 0;
+                const needsReviewPercent = stats.total > 0 ? Math.round((stats.needs_review / stats.total) * 100) : 0;
+                const unreviewedPercent = stats.total > 0 ? Math.round((stats.unreviewed / stats.total) * 100) : 0;
 
                 document.getElementById(`${prefix}-progress-text`).innerText = `${stats.complete} / ${stats.total} stations complete — ${percent}%`;
+                document.getElementById(`${prefix}-complete-stat`).innerText = stats.complete;
                 document.getElementById(`${prefix}-partial`).innerText = stats.partial;
-                document.getElementById(`${prefix}-pins`).innerText = stats.pins;
-                document.getElementById(`${prefix}-skipped`).innerText = stats.skipped;
+                document.getElementById(`${prefix}-needs-review`).innerText = stats.needs_review;
+                document.getElementById(`${prefix}-unreviewed`).innerText = stats.unreviewed;
+                document.getElementById(`${prefix}-pins`).innerText = `${stats.pins} confirmed`;
                 document.getElementById(`${prefix}-flagged`).innerText = stats.flagged;
 
                 const barHtml = `
-                    <div class="progress-fill-success" style="width: ${percent}%"></div>
-                    <div class="progress-fill-partial" style="width: ${partialPercent}%"></div>
+                    <div class="progress-fill-success" style="width: ${percent}%" title="Complete: ${stats.complete}"></div>
+                    <div class="progress-fill-partial" style="width: ${partialPercent}%" title="In Progress: ${stats.partial}"></div>
+                    <div class="progress-fill-needs-review" style="width: ${needsReviewPercent}%" title="Needs Review: ${stats.needs_review}"></div>
+                    <div class="progress-fill-unreviewed" style="width: ${unreviewedPercent}%" title="Unreviewed: ${stats.unreviewed}"></div>
                 `;
                 document.getElementById(`${prefix}-progress-bar`).innerHTML = barHtml;
             });
@@ -443,10 +465,13 @@
                 const data = state[type] || [];
                 data.forEach(station => {
                     if (filterMode === 'complete' && station.status !== 'complete') return;
-                    if (filterMode === 'all' && (station.status === 'untouched' || station.status === 'skipped')) return;
+                    if (filterMode === 'all' && (station.status === 'untouched' || station.status === 'unreviewed' || station.status === 'skipped')) return;
 
                     if (station.entrances && station.entrances.length > 0) {
                         station.entrances.forEach(ent => {
+                            // Only export confirmed pins unless exporting raw JSON
+                            if (!ent.confirmed) return;
+
                             rows.push([
                                 station.id,
                                 `"${station.name}"`,
@@ -459,7 +484,7 @@
                                 ent.lat,
                                 ent.lng,
                                 `"${(ent.notes || '').replace(/"/g, '""')}"`,
-                                ent.confirmed_at
+                                ent.confirmed_at || ''
                             ]);
                         });
                     }
@@ -523,15 +548,22 @@
 
                     imported.forEach(newSt => {
                         if (existingMap.has(newSt.id)) {
-                            // Merge logic: keep existing confirmed entries if untouched in new file
                             const oldSt = existingMap.get(newSt.id);
-                            if (oldSt.status !== 'untouched') {
-                                // Preserve old confirmed progress, but we might want to update top level metadata
-                                // We'll just keep the old fully to avoid losing any progress.
-                            } else {
-                                // Overwrite untouched
-                                existingMap.set(newSt.id, newSt);
+
+                            // Merge logic: keep existing confirmed entries
+                            const confirmedOldEntrances = (oldSt.entrances || []).filter(e => e.confirmed);
+
+                            if (confirmedOldEntrances.length > 0) {
+                                // Merge confirmed pins over imported unconfirmed ones
+                                const mergedEntrances = [...newSt.entrances.filter(ne => !confirmedOldEntrances.some(oe => oe.entrance_id === ne.entrance_id || (oe.entrance_type === ne.entrance_type && oe.is_primary === ne.is_primary))), ...confirmedOldEntrances];
+
+                                newSt.entrances = mergedEntrances;
+                                newSt.status = oldSt.status; // Preserve status if we have confirmed pins
+                                newSt.flagged = oldSt.flagged;
+                                newSt.has_car_park = oldSt.has_car_park;
+                                newSt.category = oldSt.category;
                             }
+                            existingMap.set(newSt.id, newSt);
                         } else {
                             // New entry
                             existingMap.set(newSt.id, newSt);

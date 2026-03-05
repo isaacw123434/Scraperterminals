@@ -1,0 +1,5 @@
+127.0.0.1 - - [05/Mar/2026 18:30:57] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [05/Mar/2026 18:30:58] "GET /data/rail_stations.json HTTP/1.1" 200 -
+127.0.0.1 - - [05/Mar/2026 18:30:58] "GET /data/coach_terminals.json HTTP/1.1" 200 -
+127.0.0.1 - - [05/Mar/2026 18:30:58] "GET /data/park_and_ride.json HTTP/1.1" 200 -
+127.0.0.1 - - [05/Mar/2026 18:30:59] "GET /verify.html?type=rail&filter=queue HTTP/1.1" 200 -

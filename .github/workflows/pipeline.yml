@@ -20,11 +20,18 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Run Scraper
-        run: python scripts/scrape_wikipedia.py
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
 
-      - name: Run Geocoder
-        run: python scripts/geocode_nominatim.py
+      - name: Scrape Stations
+        run: python scripts/1_scrape_stations.py
+
+      - name: Fetch Entrances (Overpass)
+        run: python scripts/2_fetch_entrances.py
+
+      - name: Merge and Score Data
+        run: python scripts/3_merge_and_score.py
 
       - name: Commit and Push changes
         run: |
@@ -32,5 +39,5 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/*.json
           # Commit only if there are changes
-          git diff --staged --quiet || git commit -m "chore: Update hub data from Wikipedia and Nominatim"
+          git diff --staged --quiet || git commit -m "chore: Update hub data pipeline"
           git push
